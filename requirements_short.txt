@@ -1,0 +1,6 @@
+aiohttp
+aiodns
+brotlipy
+cchardet
+gunicorn
+nest_asyncio

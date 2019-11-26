@@ -1,0 +1,11 @@
+# Temporal
+__pycache__
+*.pyc
+*.swp
+.DS_Store
+
+# IDE git env
+.git/
+.idea/
+*.iml
+venv
