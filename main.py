@@ -1,4 +1,5 @@
 import json
+from time import time
 from aiohttp import web
 from src.config import PORT, ALLOWED_CONTENT, DFT_MODEL
 from src.tools import img2np, show_np_img
@@ -31,19 +32,21 @@ async def image_request(request):
         return web.Response(text=json.dumps(f"Error on request: {err}"), status=400)
 
     try:
+        t_ini = time()
         content_type = data['image'].content_type if hasattr(data['image'], "content_type") else None
         if content_type not in ALLOWED_CONTENT:
             return web.Response(text=json.dumps(f"Content not allowed"), status=400)
         filename = data['image'].filename
         headers = data['image'].headers
         raw_img = data['image'].file.read()
-        LOGGER.info(f"Processing {filename} with model {model_info.name}...")
+        LOGGER.info(f"Processing {filename} ...")
 
         np_img = img2np(raw_img)
         # show_np_img(np_img)
         results = process_image(np_img, model_info, model_params, mod_image, print_label)
-        LOGGER.info(f"Processing of file {filename} finished.")
-
+        t_end = time() - t_ini
+        LOGGER.info({"Processing": "finished", "file": filename, "model": model_info.name,
+                               "total_time": f"{t_end:0.6}", "inference_time": f"{results['inference_time']:0.6}"})
         return web.Response(
             body=json.dumps({"file": filename, "data": results,
                              "model": model_info.name, "version": model_info.version}),

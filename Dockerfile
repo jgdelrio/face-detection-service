@@ -54,9 +54,9 @@ RUN ln -s \
   /usr/local/lib/python3.7/site-packages/cv2.so
 
 RUN pip install torch
-
+RUN pip install pyspark
 # Continue the installation with the server and the API service
-COPY requirements.txt /src
+COPY requirements.txt /src/requirements.txt
 
 RUN pip install --no-cache-dir -r /src/requirements.txt
 
@@ -72,4 +72,4 @@ RUN mkdir -p /run/nginx && nginx -t
 # 8009 8011 8017 8039 8053 8059 8069 8081 8087 8089 8093 8101 8111
 EXPOSE 8111
 
-#ENTRYPOINT ["/src/docker_launch.sh"]
+ENTRYPOINT ["/src/docker_launch.sh"]

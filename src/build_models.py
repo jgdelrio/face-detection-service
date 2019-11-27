@@ -1,8 +1,6 @@
 import sys
 from os import pardir
 import torch
-from src.config import DEVICE, NMS_CANDIDATE_SIZE
-from src import rfb_model
 from src import rfb_config
 from src import tools
 from src.data_preprocessing import PredictionTransform
@@ -29,6 +27,7 @@ class Predictor:
         self.net.to(self.device)
         self.net.eval()
 
+        self.inference_time = None
         self.timer = tools.Timer()
 
     def predict(self, image, top_k=-1, prob_threshold=None):
@@ -41,7 +40,8 @@ class Predictor:
             for i in range(1):
                 self.timer.start()
                 scores, boxes = self.net.forward(images)
-                print("Inference time: ", self.timer.end())
+                self.inference_time = self.timer.end()
+                # print("Inference time: ", self.inference_time)
         boxes = boxes[0]
         scores = scores[0]
         if not prob_threshold:
@@ -85,14 +85,3 @@ def rfb_predictor(net, candidate_size=200, nms_method=None, sigma=0.5, device=No
         candidate_size=candidate_size,
         sigma=sigma,
         device=device)
-
-
-async def load_model(model_ref, model_params=None):
-    if model_ref.name in ["slim-640", "RFB-640"]:
-        net = rfb_model.create_net(len(model_ref.classes), is_test=True, device=DEVICE,
-                                   reduced=model_ref.name == "slim-640")
-        model = rfb_predictor(net, candidate_size=NMS_CANDIDATE_SIZE, device=DEVICE)
-        net.load(model_ref.ref)
-    else:
-        raise ValueError(f"Requested model {model_ref.name} is not yet supported")
-    return model
