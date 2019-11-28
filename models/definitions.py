@@ -1,43 +1,53 @@
 """Store definitions for local and remote models"""
-import sys
-from os import getenv, pardir, path
+import re
+from os import getenv, pardir, path, listdir
 from collections import namedtuple
+from packaging import version
 
-sys.path.append(pardir)
-from src.config import PATH_MODELS
 
 CLASS_NAMES = ["BACKGROUND", "face"]
-Model = namedtuple("Model", "name location ref version speed classes description aliases")
+PATH_MODELS = path.dirname(__file__)
+model_files = [f for f in listdir(PATH_MODELS) if (path.isfile(path.join(PATH_MODELS, f))) and f[-3:] != ".py"]
 
-MODELS = {
-    "RFB-640": Model(
+Model_def = namedtuple("Model", "name location ref ext speed classes description aliases")
+model_params = ["name", "location", "ref", "ext", "speed", "classes", "description", "aliases", "version"]
+Model = namedtuple("Model", model_params)
+
+MODELS = {}
+LATEST_MODEL = {}
+MODELS_BASIC = {
+    "RFB-640": Model_def(
         name="RFB-640",
         location="local",
-        ref=path.join(PATH_MODELS,  "RFB-640.pth"),
-        version="0.0.1",
+        ref=path.join(PATH_MODELS,  "RFB-640"),
+        ext=".pth",
         speed="fast",
         classes=CLASS_NAMES,
         description="optimized model for fast processing",
-        aliases=["RFB", "rfb"]),
-    "slim-640": Model(
+        aliases=["RFB", "rfb", "fast-accurate"]),
+    "slim-640": Model_def(
         name="slim-640",
         location="local",
-        ref=path.join(PATH_MODELS, "slim-640.pth"),
-        version="0.0.1",
+        ref=path.join(PATH_MODELS, "slim-640"),
+        ext=".pth",
         speed="ultrafast",
         classes=CLASS_NAMES,
         description="smallest model with overall optimization for speed",
-        aliases=["slim"]),
+        aliases=["slim", "fastest"]),
 }
 
-N_MODELS = len(MODELS)
+# Fill model list with all versions found
+version_regex = re.compile("\d\.\d\.\d")
+for m in MODELS_BASIC:
+    is_model = [k for k in model_files if (m + "_" in k)]
+    versions = [version_regex.findall(v)[0] for v in is_model]
+    versions.sort(key=lambda s: map(int, s.split('.')))
+    for v in versions:
+        model_ref = m + "_" + v
+        MODELS[model_ref] = Model(*MODELS_BASIC[m], v)
+    LATEST_MODEL[m] = v
 
-EXTRA_DEFINITIONS = {
-    "fastest": "RFB-640",
-    "accurate": "RFB-640",
-}
+PRELOAD = [("slim-640", "0.0.1"),
+           ("RFB-640", "0.0.1")]
 
-PRELOAD = ["slim-640", "RFB-640"]
-
-DFT_MODEL = getenv("DFT_MODEL", "RFB-640")
-MODEL_LIST = [*MODELS.keys(), *EXTRA_DEFINITIONS.keys()]
+MODEL_NAMES_LIST = MODELS_BASIC.keys()

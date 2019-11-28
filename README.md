@@ -7,7 +7,8 @@ Provides access to several models through a common API.
 - The key will be 'image' of type 'file', with value the image file and content type optional (e.x. image/jpg)
 
 Other parameters that can be sent include:
-- model : (string) name of the model selected for processing.
+- model : (string) name of the model selected for processing (e.x. "RFB")
+- version: (optional): by default it uses the latest version (e.x. "0.0.1")
 - model_params: parameters for the model (if the model accepts parameters).
 - mod_image: (boolean) if True the original image is sent back with the boxes of faces printed.
 - label: (boolean) only in use when mod_image is True. It prints labels next to the boxes detected.

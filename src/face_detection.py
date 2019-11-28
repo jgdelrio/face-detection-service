@@ -1,10 +1,11 @@
 import cv2
 import asyncio
 import nest_asyncio
-from src.config import logger, THRESHOLD, DEVICE, NMS_CANDIDATE_SIZE
+from packaging import version
+from src.config import logger, THRESHOLD, DEVICE, NMS_CANDIDATE_SIZE, DFT_MODEL
 from src import rfb_model
 from src.build_models import *
-from models.definitions import *
+from models.definitions import MODELS, PRELOAD, LATEST_MODEL
 from src.tools import show_np_img
 
 LOGGER = logger(name="face-detection")
@@ -18,16 +19,25 @@ def process_image(img, model_info, model_params, mod_image, print_label):
         _process_image(img, model_info, model_params, mod_image, print_label))
 
 
-def get_model_reference(name):
-    if name in MODELS.keys():
-        return MODELS[name]
-    elif name in EXTRA_DEFINITIONS.keys():
-        return MODELS[EXTRA_DEFINITIONS[name]]
+def get_model_reference(name, version):
+    ref = name + "_" + version
+    if ref in MODELS.keys():
+        return MODELS[ref]
     else:
         for key, val in MODELS.items():
-            if name in val.aliases:
+            if name in val.aliases and version in val.version:
                 return MODELS[key]
         raise ValueError(f"Model {name} is not within the pre-defined models")
+
+
+def get_lastest_version(name):
+    if name in LATEST_MODEL.keys():
+        return LATEST_MODEL[name]
+    raise ValueError(f"Model {name} is not within the pre-defined models")
+
+
+def get_full_model_path(model_info):
+    return model_info.ref + "_" + model_info.version + model_info.ext
 
 
 def dict_faces_prediction(boxes, labels, probs, inference_time=None, image=None):
@@ -81,15 +91,15 @@ async def load_model(model_ref, model_params=None):
         net = rfb_model.create_net(len(model_ref.classes), is_test=True, device=DEVICE,
                                    reduced=model_ref.name == "slim-640")
         model = rfb_predictor(net, candidate_size=NMS_CANDIDATE_SIZE, device=DEVICE)
-        net.load(model_ref.ref)
+        net.load(get_full_model_path(model_ref))
     else:
         raise ValueError(f"Requested model {model_ref.name} is not yet supported")
     return model
 
 
 async def preload_models(models):
-    result = await asyncio.gather(*[load_model(get_model_reference(m)) for m in models])
+    result = await asyncio.gather(*[load_model(get_model_reference(*m)) for m in models])
     return result
 
 # Preload selected models to reduce loading time
-PRE_LOADED_MODELS = {name: model for name, model in zip(PRELOAD, asyncio.run(preload_models(PRELOAD)))}
+PRE_LOADED_MODELS = {(name[0] + "_" + name[1]): model for name, model in zip(PRELOAD, asyncio.run(preload_models(PRELOAD)))}

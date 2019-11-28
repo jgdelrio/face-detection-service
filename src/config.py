@@ -6,14 +6,7 @@ sys.path.append(pardir)
 
 # Paths
 PATH_ROOT = path.abspath(path.join(path.dirname(__file__), path.pardir))
-PATH_MODELS = path.join(PATH_ROOT, "models")
-MODELS = {
-    "RFB-640": {
-        "name": "RFB-640",
-        "file": "RFB-640.pth",
-        "ref": path.join(PATH_MODELS,  "RFB-640.pth")
-    }}
-DFT_MODEL = MODELS["RFB-640"]["name"]           # Default model
+DFT_MODEL = getenv("DFT_MODEL", "RFB-640")      # Default model
 
 # cpu or cuda:0
 DEVICE = getenv("DEVICE", "cpu")

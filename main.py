@@ -3,7 +3,8 @@ from time import time
 from aiohttp import web
 from src.config import PORT, ALLOWED_CONTENT, DFT_MODEL
 from src.tools import img2np, show_np_img
-from src.face_detection import LOGGER, process_image, get_model_reference, unavailable_model
+from src.face_detection import LOGGER, process_image, get_model_reference, get_lastest_version, unavailable_model
+from models.definitions import MODEL_NAMES_LIST
 
 
 async def healthcheck(request):
@@ -16,16 +17,27 @@ async def healthcheck(request):
 
 
 async def image_request(request):
+    """
+    Receives the request and process the image
+    Valid parameters in the request:
+    - model:        (optional) name of the model selected
+    - version:      (optional) version of the model
+    - model_params: (optional) extra parameters for the model
+    - mod_image:    (optional) get in the output the image with the boxes printed
+    - label:        (optional) print as well labels in the output image
+    """
     try:
         # Gather input parameters and select model
         request_content_type = request.headers.get("Content-Type")
         data = await request.post()
         if 'image' not in data.keys():
             return web.Response(text=json.dumps(f"Invalid request. No image key."), status=400)
-        model_info = get_model_reference(data['model']) if 'model' in data.keys() else get_model_reference(DFT_MODEL)
+        model_name = data['model'] if 'model' in MODEL_NAMES_LIST else DFT_MODEL
+        model_version = data['version'] if 'version' in data.keys() else get_lastest_version(model_name)
+        model_info = get_model_reference(model_name, model_version)
         model_params = data['model_params'] if 'model_params' in data.keys() else None
         mod_image = bool(data['mod_image']) if 'mod_image' in data.keys() else False
-        print_label = bool(data['print_label']) if 'print_label' in data.keys() else False
+        print_label = bool(data['label']) if 'label' in data.keys() else False
     except ValueError as err:
         return web.Response(text=json.dumps(f"Error reading the request: {err}"), status=400)
     except Exception as err:
